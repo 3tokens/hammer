@@ -5,10 +5,6 @@ import threading
 import queue
 import textwrap
 import time
-import RPi.GPIO as GPIO
-
-KEY_UP   = 6
-KEY_DOWN = 19
 
 app = Flask(__name__)
 
@@ -47,17 +43,10 @@ def scroll_down(channel):
         display_queue.put(True)
 
 def joystick_poller():
-    try:
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(KEY_UP,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(KEY_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    except Exception as e:
-        print(f"Joystick unavailable: {e}")
-        return
-    prev_up = prev_down = True
+    prev_up = prev_down = 1
     while True:
-        up   = GPIO.input(KEY_UP)
-        down = GPIO.input(KEY_DOWN)
+        up   = disp.GPIO_KEY_UP_PIN.value
+        down = disp.GPIO_KEY_DOWN_PIN.value
         if not up   and prev_up:   scroll_up(None)
         if not down and prev_down: scroll_down(None)
         prev_up, prev_down = up, down
