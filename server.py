@@ -4,6 +4,7 @@ import ST7789
 import threading
 import queue
 import textwrap
+import time
 import RPi.GPIO as GPIO
 
 KEY_UP   = 6
@@ -45,15 +46,24 @@ def scroll_down(channel):
         scroll_offset += 1
         display_queue.put(True)
 
-try:
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(KEY_UP,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.setup(KEY_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(KEY_UP,   GPIO.FALLING, callback=scroll_up,   bouncetime=200)
-    GPIO.add_event_detect(KEY_DOWN, GPIO.FALLING, callback=scroll_down, bouncetime=200)
-    print("Joystick ready")
-except Exception as e:
-    print(f"Joystick unavailable: {e}")
+def joystick_poller():
+    try:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(KEY_UP,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(KEY_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    except Exception as e:
+        print(f"Joystick unavailable: {e}")
+        return
+    prev_up = prev_down = True
+    while True:
+        up   = GPIO.input(KEY_UP)
+        down = GPIO.input(KEY_DOWN)
+        if not up   and prev_up:   scroll_up(None)
+        if not down and prev_down: scroll_down(None)
+        prev_up, prev_down = up, down
+        time.sleep(0.05)
+
+threading.Thread(target=joystick_poller, daemon=True).start()
 
 def update_screen():
     img = Image.new('RGB', (240, 240), (0, 0, 0))
