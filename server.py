@@ -52,7 +52,6 @@ GPIO.add_event_detect(KEY_UP,   GPIO.FALLING, callback=scroll_up,   bouncetime=2
 GPIO.add_event_detect(KEY_DOWN, GPIO.FALLING, callback=scroll_down, bouncetime=200)
 
 def update_screen():
-    disp.bl_DutyCycle(100)
     img = Image.new('RGB', (240, 240), (0, 0, 0))
     draw = ImageDraw.Draw(img)
     draw.text((50, 10), "HAMMER", font=font_big, fill=(255, 255, 255))
@@ -76,10 +75,10 @@ def display_worker():
     update_screen()
     while True:
         try:
-            display_queue.get(timeout=10)
+            display_queue.get(timeout=60)
+            update_screen()
         except:
             pass
-        update_screen()
 
 @app.route('/message', methods=['POST'])
 def receive_message():
