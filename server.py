@@ -5,6 +5,18 @@ import threading
 import queue
 import textwrap
 import time
+import subprocess
+
+JBL_MAC = "20:18:5B:61:8E:B5"
+ALSA_DEV = f"bluealsa:DEV={JBL_MAC},PROFILE=a2dp"
+
+def speak(text):
+    try:
+        tts = subprocess.Popen(['espeak-ng', '-a', '200', text, '--stdout'], stdout=subprocess.PIPE)
+        subprocess.Popen(['aplay', '-D', ALSA_DEV], stdin=tts.stdout)
+        tts.stdout.close()
+    except Exception as e:
+        print(f"TTS error: {e}")
 
 app = Flask(__name__)
 
@@ -108,6 +120,7 @@ def receive_message():
             messages.pop(0)
         scroll_offset = 0
         display_queue.put(True)
+        threading.Thread(target=speak, args=(f"Message from {sender}. {text}",), daemon=True).start()
 
     return 'ok'
 
