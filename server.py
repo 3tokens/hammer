@@ -7,13 +7,25 @@ import textwrap
 import time
 import subprocess
 
-JBL_MAC = "20:18:5B:61:8E:B5"
-ALSA_DEV = f"bluealsa:DEV={JBL_MAC},PROFILE=a2dp"
+def get_bt_speaker():
+    """Return ALSA device string for first connected A2DP Bluetooth device."""
+    try:
+        result = subprocess.run(['aplay', '-L'], capture_output=True, text=True, timeout=3)
+        for line in result.stdout.splitlines():
+            if line.startswith('bluealsa') and 'a2dp' in line.lower():
+                return line.strip()
+    except Exception:
+        pass
+    return None
 
 def speak(text):
+    dev = get_bt_speaker()
+    if not dev:
+        print("No Bluetooth speaker connected, skipping TTS")
+        return
     try:
         tts = subprocess.Popen(['espeak-ng', '-a', '200', text, '--stdout'], stdout=subprocess.PIPE)
-        subprocess.Popen(['aplay', '-D', ALSA_DEV], stdin=tts.stdout)
+        subprocess.Popen(['aplay', '-D', dev], stdin=tts.stdout)
         tts.stdout.close()
     except Exception as e:
         print(f"TTS error: {e}")
