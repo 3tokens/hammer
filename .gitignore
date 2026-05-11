@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+Font/
+pic.jpg
+main.py
+key_demo.py
+config.py
+ST7789.py
