@@ -18,16 +18,18 @@ disp.bl_DutyCycle(100)
 messages = []
 display_queue = queue.Queue()
 scroll_offset = 0
-
+MAX_MESSAGES  = 20
 MAX_VISIBLE_LINES = 7  # (230 - 82) // 20
 
-def get_current_lines():
-    if not messages:
-        return [], []
-    msg = messages[-1]
-    sender_lines = [msg['sender']]
-    text_lines = textwrap.wrap(msg['text'], width=22)
-    return sender_lines, text_lines
+def build_lines():
+    """Flat list of (text, color) for all messages, newest first."""
+    lines = []
+    for msg in reversed(messages):
+        lines.append((msg['sender'][:22], (100, 255, 100)))
+        for t in textwrap.wrap(msg['text'], width=22):
+            lines.append((t, (255, 255, 255)))
+        lines.append(('', (0, 0, 0)))  # blank separator
+    return lines
 
 def scroll_up(channel):
     global scroll_offset
@@ -37,8 +39,8 @@ def scroll_up(channel):
 
 def scroll_down(channel):
     global scroll_offset
-    _, text_lines = get_current_lines()
-    if scroll_offset < max(0, len(text_lines) - MAX_VISIBLE_LINES):
+    total = len(build_lines())
+    if scroll_offset < max(0, total - MAX_VISIBLE_LINES):
         scroll_offset += 1
         display_queue.put(True)
 
@@ -62,15 +64,14 @@ def update_screen():
     if not messages:
         draw.text((10, 100), "No messages", font=font_small, fill=(80, 80, 80))
     else:
-        sender_lines, text_lines = get_current_lines()
+        all_lines = build_lines()
+        visible = all_lines[scroll_offset: scroll_offset + MAX_VISIBLE_LINES]
         y = 60
-        draw.text((10, y), sender_lines[0][:22], font=font_small, fill=(100, 255, 100))
-        y += 22
-        visible = text_lines[scroll_offset: scroll_offset + MAX_VISIBLE_LINES]
-        for line in visible:
-            draw.text((10, y), line, font=font_small, fill=(255, 255, 255))
+        for text, color in visible:
+            if text:
+                draw.text((10, y), text, font=font_small, fill=color)
             y += 20
-        if scroll_offset + MAX_VISIBLE_LINES < len(text_lines):
+        if scroll_offset + MAX_VISIBLE_LINES < len(all_lines):
             draw.text((10, 228), "v more", font=font_small, fill=(80, 80, 80))
     disp.ShowImage(img)
 
@@ -103,6 +104,8 @@ def receive_message():
     if text:
         global scroll_offset
         messages.append({'sender': sender, 'text': text})
+        if len(messages) > MAX_MESSAGES:
+            messages.pop(0)
         scroll_offset = 0
         display_queue.put(True)
 
