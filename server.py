@@ -3,6 +3,11 @@ from PIL import Image, ImageDraw, ImageFont
 import ST7789
 import threading
 import queue
+import textwrap
+import RPi.GPIO as GPIO
+
+KEY_UP   = 6
+KEY_DOWN = 19
 
 app = Flask(__name__)
 
@@ -15,6 +20,36 @@ disp.bl_DutyCycle(100)
 
 messages = []
 display_queue = queue.Queue()
+scroll_offset = 0
+
+MAX_VISIBLE_LINES = 7  # (230 - 82) // 20
+
+def get_current_lines():
+    if not messages:
+        return [], []
+    msg = messages[-1]
+    sender_lines = [msg['sender']]
+    text_lines = textwrap.wrap(msg['text'], width=22)
+    return sender_lines, text_lines
+
+def scroll_up(channel):
+    global scroll_offset
+    if scroll_offset > 0:
+        scroll_offset -= 1
+        display_queue.put(True)
+
+def scroll_down(channel):
+    global scroll_offset
+    _, text_lines = get_current_lines()
+    if scroll_offset < max(0, len(text_lines) - MAX_VISIBLE_LINES):
+        scroll_offset += 1
+        display_queue.put(True)
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(KEY_UP,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(KEY_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.add_event_detect(KEY_UP,   GPIO.FALLING, callback=scroll_up,   bouncetime=200)
+GPIO.add_event_detect(KEY_DOWN, GPIO.FALLING, callback=scroll_down, bouncetime=200)
 
 def update_screen():
     disp.bl_DutyCycle(100)
@@ -25,11 +60,16 @@ def update_screen():
     if not messages:
         draw.text((10, 100), "No messages", font=font_small, fill=(80, 80, 80))
     else:
+        sender_lines, text_lines = get_current_lines()
         y = 60
-        for msg in messages[-4:]:
-            draw.text((10, y), msg['sender'], font=font_small, fill=(100, 255, 100))
-            draw.text((10, y+20), msg['text'][:25], font=font_small, fill=(255, 255, 255))
-            y += 50
+        draw.text((10, y), sender_lines[0][:22], font=font_small, fill=(100, 255, 100))
+        y += 22
+        visible = text_lines[scroll_offset: scroll_offset + MAX_VISIBLE_LINES]
+        for line in visible:
+            draw.text((10, y), line, font=font_small, fill=(255, 255, 255))
+            y += 20
+        if scroll_offset + MAX_VISIBLE_LINES < len(text_lines):
+            draw.text((10, 228), "v more", font=font_small, fill=(80, 80, 80))
     disp.ShowImage(img)
 
 def display_worker():
@@ -59,7 +99,9 @@ def receive_message():
         text = data.get('text', '')
 
     if text:
+        global scroll_offset
         messages.append({'sender': sender, 'text': text})
+        scroll_offset = 0
         display_queue.put(True)
 
     return 'ok'
