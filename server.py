@@ -8,12 +8,11 @@ import time
 import subprocess
 
 def get_bt_speaker():
-    """Return ALSA device string for first connected A2DP Bluetooth device."""
+    """Return ALSA device string if a Bluetooth speaker is available."""
     try:
         result = subprocess.run(['aplay', '-L'], capture_output=True, text=True, timeout=3)
-        for line in result.stdout.splitlines():
-            if line.startswith('bluealsa') and 'a2dp' in line.lower():
-                return line.strip()
+        if 'bluealsa' in result.stdout:
+            return 'bluealsa'
     except Exception:
         pass
     return None
