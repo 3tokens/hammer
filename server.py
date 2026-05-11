@@ -43,12 +43,12 @@ def scroll_down(channel):
         display_queue.put(True)
 
 def joystick_poller():
-    prev_up = prev_down = 1
+    prev_up = prev_down = 0
     while True:
         up   = disp.GPIO_KEY_UP_PIN.value
         down = disp.GPIO_KEY_DOWN_PIN.value
-        if not up   and prev_up:   scroll_up(None)
-        if not down and prev_down: scroll_down(None)
+        if up   and not prev_up:   scroll_up(None)
+        if down and not prev_down: scroll_down(None)
         prev_up, prev_down = up, down
         time.sleep(0.05)
 
