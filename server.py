@@ -45,11 +45,15 @@ def scroll_down(channel):
         scroll_offset += 1
         display_queue.put(True)
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(KEY_UP,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(KEY_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.add_event_detect(KEY_UP,   GPIO.FALLING, callback=scroll_up,   bouncetime=200)
-GPIO.add_event_detect(KEY_DOWN, GPIO.FALLING, callback=scroll_down, bouncetime=200)
+try:
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(KEY_UP,   GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.setup(KEY_DOWN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.add_event_detect(KEY_UP,   GPIO.FALLING, callback=scroll_up,   bouncetime=200)
+    GPIO.add_event_detect(KEY_DOWN, GPIO.FALLING, callback=scroll_down, bouncetime=200)
+    print("Joystick ready")
+except Exception as e:
+    print(f"Joystick unavailable: {e}")
 
 def update_screen():
     img = Image.new('RGB', (240, 240), (0, 0, 0))
