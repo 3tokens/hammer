@@ -6,9 +6,19 @@ import queue
 import textwrap
 import time
 import subprocess
+import tempfile
+import os
+import requests
+from gpiozero import Button
+
+BB_URL = "https://movies-nottingham-era-teaching.trycloudflare.com"
+BB_PASSWORD = "Nishan123"
+CONTACTS = {
+    'KEY1': {'name': 'Contact 1', 'number': '+14802866666'},
+}
+MIC_DEVICE = 'plughw:3,0'
 
 def get_bt_speaker():
-    """Return ALSA device string if a Bluetooth speaker is available."""
     try:
         result = subprocess.run(['aplay', '-L'], capture_output=True, text=True, timeout=3)
         if 'bluealsa' in result.stdout:
@@ -41,18 +51,29 @@ disp.bl_DutyCycle(100)
 messages = []
 display_queue = queue.Queue()
 scroll_offset = 0
-MAX_MESSAGES  = 20
-MAX_VISIBLE_LINES = 7  # (230 - 82) // 20
+MAX_MESSAGES = 20
+MAX_VISIBLE_LINES = 7
+
+# Recording state
+recording_proc = None
+recording_tmpfile = None
+recording_key = None
+recording_lock = threading.Lock()
+status_msg = None
 
 def build_lines():
-    """Flat list of (text, color) for all messages, newest first."""
     lines = []
     for msg in reversed(messages):
         lines.append((msg['sender'][:22], (100, 255, 100)))
         for t in textwrap.wrap(msg['text'], width=22):
             lines.append((t, (255, 255, 255)))
-        lines.append(('', (0, 0, 0)))  # blank separator
+        lines.append(('', (0, 0, 0)))
     return lines
+
+def set_status(msg):
+    global status_msg
+    status_msg = msg
+    display_queue.put(True)
 
 def scroll_up(channel):
     global scroll_offset
@@ -67,24 +88,99 @@ def scroll_down(channel):
         scroll_offset += 1
         display_queue.put(True)
 
-def joystick_poller():
-    prev_up = prev_down = 0
-    while True:
-        up   = disp.GPIO_KEY_UP_PIN.value
-        down = disp.GPIO_KEY_DOWN_PIN.value
-        if up   and not prev_up:   scroll_up(None)
-        if down and not prev_down: scroll_down(None)
-        prev_up, prev_down = up, down
-        time.sleep(0.05)
+def start_recording(key):
+    global recording_proc, recording_tmpfile, recording_key
+    tmpfile = tempfile.mktemp(suffix='.wav')
+    proc = subprocess.Popen(['arecord', '-D', MIC_DEVICE, '-f', 'S16_LE', '-r', '16000', tmpfile])
+    recording_proc = proc
+    recording_tmpfile = tmpfile
+    recording_key = key
+    set_status("Recording...\nPress KEY1 to send")
 
-threading.Thread(target=joystick_poller, daemon=True).start()
+def stop_and_send():
+    global recording_proc, recording_tmpfile, recording_key
+    with recording_lock:
+        proc = recording_proc
+        tmpfile = recording_tmpfile
+        key = recording_key
+        recording_proc = None
+        recording_tmpfile = None
+        recording_key = None
+
+    if proc:
+        proc.terminate()
+        proc.wait()
+
+    if not tmpfile or not os.path.exists(tmpfile):
+        set_status("No audio recorded")
+        time.sleep(2)
+        set_status(None)
+        return
+
+    contact = CONTACTS.get(key, {})
+    number = contact.get('number', '')
+
+    set_status("Converting...")
+    m4a_file = tmpfile.replace('.wav', '.m4a')
+    subprocess.run(['ffmpeg', '-y', '-i', tmpfile, '-c:a', 'aac', m4a_file], capture_output=True)
+    os.unlink(tmpfile)
+
+    set_status(f"Sending to\n{number}...")
+    ok = send_audio(number, m4a_file)
+    os.unlink(m4a_file)
+
+    if ok:
+        set_status("Sent!")
+        speak("Audio message sent.")
+    else:
+        set_status("Send failed!")
+    time.sleep(2)
+    set_status(None)
+
+def send_audio(number, filepath):
+    try:
+        with open(filepath, 'rb') as f:
+            resp = requests.post(
+                f"{BB_URL}/api/v1/message/attachment",
+                params={'password': BB_PASSWORD},
+                data={'chatGuid': f'iMessage;-;{number}'},
+                files={'attachment': (os.path.basename(filepath), f, 'audio/mp4')},
+                timeout=30
+            )
+        print(f"BlueBubbles: {resp.status_code} {resp.text}")
+        return resp.ok
+    except Exception as e:
+        print(f"Send error: {e}")
+        return False
+
+btn_up   = Button(6,  pull_up=True)
+btn_down = Button(19, pull_up=True)
+btn_key1 = Button(21, pull_up=True)
+
+btn_up.when_pressed   = lambda: scroll_up(None)
+btn_down.when_pressed = lambda: scroll_down(None)
+
+def on_key1():
+    with recording_lock:
+        is_recording = recording_proc is not None
+    if is_recording:
+        threading.Thread(target=stop_and_send, daemon=True).start()
+    else:
+        start_recording('KEY1')
+
+btn_key1.when_pressed = on_key1
 
 def update_screen():
     img = Image.new('RGB', (240, 240), (0, 0, 0))
     draw = ImageDraw.Draw(img)
     draw.text((50, 10), "HAMMER", font=font_big, fill=(255, 255, 255))
     draw.line((0, 50, 240, 50), fill=(50, 50, 50), width=1)
-    if not messages:
+    if status_msg:
+        y = 80
+        for line in status_msg.split('\n'):
+            draw.text((10, y), line, font=font_small, fill=(255, 200, 0))
+            y += 24
+    elif not messages:
         draw.text((10, 100), "No messages", font=font_small, fill=(80, 80, 80))
     else:
         all_lines = build_lines()
