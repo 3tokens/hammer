@@ -36,13 +36,46 @@ Without it, rapid restarts leave stale pin handles causing GPIOPinInUse crashes.
 - TTS: espeak-ng piped to aplay -D bluealsa
 
 ## BlueBubbles
-- URL: CloudFlare tunnel URL (changes periodically — update BB_URL in server.py)
+- URL: `https://bb.produceapp.ai` (CloudFlare tunnel — fixed, not rotating)
 - Password: set BB_PASSWORD in server.py
 - Local port: 1234
 - Send attachment API: `POST /api/v1/message/attachment`
   - Required fields: `chatGuid`, `name`, `tempGuid` (uuid4), file as multipart `attachment`
   - Use `timeout=(10, 120)` — CloudFlare tunnel is slow to respond but upload is fast
   - Use fire-and-forget thread so screen updates immediately
+
+## CloudFlare Tunnel Setup (Mac)
+Tunnel name: `bluebubbles`, routes `bb.produceapp.ai` → `http://localhost:1234`
+Credentials: `~/.cloudflared/cert.pem` and `~/.cloudflared/<tunnel-uuid>.json`
+Config: `~/.cloudflared/config.yml`
+
+### Critical: launchd plist must include explicit paths
+The service runs as root so `~` = `/var/root/` — it won't find user credentials automatically.
+Plist at `/Library/LaunchDaemons/com.cloudflare.cloudflared.plist` must be:
+```xml
+<key>ProgramArguments</key>
+<array>
+    <string>/usr/local/bin/cloudflared</string>
+    <string>tunnel</string>
+    <string>--origincert</string>
+    <string>/Users/nishantsingh/.cloudflared/cert.pem</string>
+    <string>--credentials-file</string>
+    <string>/Users/nishantsingh/.cloudflared/<tunnel-uuid>.json</string>
+    <string>--config</string>
+    <string>/Users/nishantsingh/.cloudflared/config.yml</string>
+    <string>run</string>
+    <string>bluebubbles</string>
+</array>
+```
+Without `--config`, tunnel connects but returns 503 (ignores ingress rules).
+Without `--origincert`/`--credentials-file`, tunnel fails with "cannot determine origin cert" and loops.
+
+### Debugging tunnel issues
+- `cloudflared tunnel list` — check CONNECTIONS column (empty = not routing)
+- `tail -20 /Library/Logs/com.cloudflare.cloudflared.err.log` — see why it's failing
+- `curl http://localhost:1234/api/v1/ping?password=...` — test BB locally
+- `curl https://bb.produceapp.ai/api/v1/ping?password=...` — test through tunnel
+- 530 from Pi = tunnel down; 503 = tunnel up but not routing to BB; 500 = BB internal error
 
 ## Voice-to-iMessage Feature
 - KEY1 toggle: first press starts recording, second press stops + sends
