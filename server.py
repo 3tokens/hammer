@@ -11,6 +11,7 @@ import os
 import requests
 import signal
 import sys
+import uuid
 
 BB_URL = "https://movies-nottingham-era-teaching.trycloudflare.com"
 BB_PASSWORD = "Nishan123"
@@ -151,7 +152,7 @@ def send_audio(number, filepath):
             resp = requests.post(
                 f"{BB_URL}/api/v1/message/attachment",
                 params={'password': BB_PASSWORD},
-                data={'chatGuid': f'iMessage;-;{number}', 'name': os.path.basename(filepath)},
+                data={'chatGuid': f'iMessage;-;{number}', 'name': os.path.basename(filepath), 'tempGuid': str(uuid.uuid4())},
                 files={'attachment': (os.path.basename(filepath), f, 'audio/mp4')},
                 timeout=30
             )
