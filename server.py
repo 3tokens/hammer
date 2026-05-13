@@ -154,7 +154,7 @@ def send_audio(number, filepath):
                 params={'password': BB_PASSWORD},
                 data={'chatGuid': f'iMessage;-;{number}', 'name': os.path.basename(filepath), 'tempGuid': str(uuid.uuid4())},
                 files={'attachment': (os.path.basename(filepath), f, 'audio/mp4')},
-                timeout=30
+                timeout=(10, 120)
             )
         print(f"BlueBubbles: {resp.status_code} {resp.text}", flush=True)
         return resp.ok
