@@ -134,15 +134,16 @@ def stop_and_send():
         set_status(None)
         return
 
-    set_status(f"Sending to\n{number}...")
-    ok = send_audio(number, m4a_file)
-    os.unlink(m4a_file)
+    def upload():
+        ok = send_audio(number, m4a_file)
+        if os.path.exists(m4a_file):
+            os.unlink(m4a_file)
+        if not ok:
+            print("Background send failed", flush=True)
 
-    if ok:
-        set_status("Sent!")
-        speak("Audio message sent.")
-    else:
-        set_status("Send failed!")
+    threading.Thread(target=upload, daemon=True).start()
+    set_status("Sent!")
+    speak("Audio message sent.")
     time.sleep(2)
     set_status(None)
 
