@@ -123,8 +123,15 @@ def stop_and_send():
 
     set_status("Converting...")
     m4a_file = tmpfile.replace('.wav', '.m4a')
-    subprocess.run(['ffmpeg', '-y', '-i', tmpfile, '-c:a', 'aac', m4a_file], capture_output=True)
+    r = subprocess.run(['ffmpeg', '-y', '-i', tmpfile, '-c:a', 'aac', m4a_file], capture_output=True)
+    print(f"ffmpeg exit={r.returncode} exists={os.path.exists(m4a_file)}", flush=True)
     os.unlink(tmpfile)
+
+    if not os.path.exists(m4a_file):
+        set_status("Convert failed!")
+        time.sleep(2)
+        set_status(None)
+        return
 
     set_status(f"Sending to\n{number}...")
     ok = send_audio(number, m4a_file)
@@ -148,10 +155,10 @@ def send_audio(number, filepath):
                 files={'attachment': (os.path.basename(filepath), f, 'audio/mp4')},
                 timeout=30
             )
-        print(f"BlueBubbles: {resp.status_code} {resp.text}")
+        print(f"BlueBubbles: {resp.status_code} {resp.text}", flush=True)
         return resp.ok
     except Exception as e:
-        print(f"Send error: {e}")
+        print(f"Send error: {e}", flush=True)
         return False
 
 def on_key1():
