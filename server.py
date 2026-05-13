@@ -13,10 +13,11 @@ import signal
 import sys
 import uuid
 
-BB_URL = "https://movies-nottingham-era-teaching.trycloudflare.com"
+BB_URL = "https://focusing-borders-butterfly-hills.trycloudflare.com"
 BB_PASSWORD = "Nishan123"
 CONTACTS = {
     'KEY1': {'name': 'Contact 1', 'number': '+14802866666'},
+    'KEY2': {'name': 'Wife', 'number': '+15098608223'},
 }
 MIC_DEVICE = 'plughw:3,0'
 
@@ -163,13 +164,13 @@ def send_audio(number, filepath):
         print(f"Send error: {e}", flush=True)
         return False
 
-def on_key1():
+def on_key(key):
     with recording_lock:
         is_recording = recording_proc is not None
     if is_recording:
         threading.Thread(target=stop_and_send, daemon=True).start()
     else:
-        start_recording('KEY1')
+        start_recording(key)
 
 def joystick_poller():
     prev_up = prev_down = 0
@@ -182,12 +183,15 @@ def joystick_poller():
         time.sleep(0.05)
 
 def key_poller():
-    prev1 = 0
+    prev1 = prev2 = 0
     while True:
         k1 = disp.GPIO_KEY1_PIN.value
+        k2 = disp.GPIO_KEY2_PIN.value
         if k1 and not prev1:
-            on_key1()
-        prev1 = k1
+            on_key('KEY1')
+        if k2 and not prev2:
+            on_key('KEY2')
+        prev1, prev2 = k1, k2
         time.sleep(0.05)
 
 def cleanup(signum, frame):
