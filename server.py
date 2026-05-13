@@ -21,26 +21,6 @@ CONTACTS = {
 }
 MIC_DEVICE = 'plughw:3,0'
 
-def get_bt_speaker():
-    try:
-        result = subprocess.run(['aplay', '-L'], capture_output=True, text=True, timeout=3)
-        if 'bluealsa' in result.stdout:
-            return 'bluealsa'
-    except Exception:
-        pass
-    return None
-
-def speak(text):
-    dev = get_bt_speaker()
-    if not dev:
-        print("No Bluetooth speaker connected, skipping TTS")
-        return
-    try:
-        tts = subprocess.Popen(['espeak-ng', '-a', '200', text, '--stdout'], stdout=subprocess.PIPE)
-        subprocess.Popen(['aplay', '-D', dev], stdin=tts.stdout)
-        tts.stdout.close()
-    except Exception as e:
-        print(f"TTS error: {e}")
 
 app = Flask(__name__)
 
@@ -144,7 +124,6 @@ def stop_and_send():
 
     threading.Thread(target=upload, daemon=True).start()
     set_status("Sent!")
-    speak("Audio message sent.")
     time.sleep(2)
     set_status(None)
 
@@ -158,7 +137,7 @@ def send_audio(number, filepath):
                 files={'attachment': (os.path.basename(filepath), f, 'audio/mp4')},
                 timeout=(10, 120)
             )
-        print(f"BlueBubbles: {resp.status_code} {resp.text}", flush=True)
+        print(f"BlueBubbles: {resp.status_code} {resp.text[:120]}", flush=True)
         return resp.ok
     except Exception as e:
         print(f"Send error: {e}", flush=True)
@@ -261,7 +240,6 @@ def receive_message():
             messages.pop(0)
         scroll_offset = 0
         display_queue.put(True)
-        threading.Thread(target=speak, args=(f"Message from {sender}. {text}",), daemon=True).start()
 
     return 'ok'
 
