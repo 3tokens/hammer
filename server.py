@@ -9,8 +9,8 @@ import subprocess
 import tempfile
 import os
 import requests
-import gpiod
-from gpiod.line import Bias, Direction, Value as GpioValue
+import signal
+import sys
 
 BB_URL = "https://movies-nottingham-era-teaching.trycloudflare.com"
 BB_PASSWORD = "Nishan123"
@@ -162,41 +162,34 @@ def on_key1():
     else:
         start_recording('KEY1')
 
-def button_poller():
-    chip = None
-    for i in range(8):
-        try:
-            c = gpiod.Chip(f'/dev/gpiochip{i}')
-            if c.get_info().num_lines >= 28:
-                chip = c
-                break
-        except Exception:
-            continue
-    if not chip:
-        print("ERROR: Cannot find GPIO chip for buttons")
-        return
-    try:
-        req = chip.request_lines(
-            consumer="hammer-buttons",
-            config={
-                6:  gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP),
-                19: gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP),
-                21: gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP),
-            }
-        )
-    except Exception as e:
-        print(f"ERROR: Cannot claim GPIO pins: {e}")
-        return
-    prev = {6: GpioValue.ACTIVE, 19: GpioValue.ACTIVE, 21: GpioValue.ACTIVE}
+def joystick_poller():
+    prev_up = prev_down = 0
     while True:
-        vals = req.get_values()
-        if vals[6]  == GpioValue.INACTIVE and prev[6]  == GpioValue.ACTIVE: scroll_up(None)
-        if vals[19] == GpioValue.INACTIVE and prev[19] == GpioValue.ACTIVE: scroll_down(None)
-        if vals[21] == GpioValue.INACTIVE and prev[21] == GpioValue.ACTIVE: on_key1()
-        prev = dict(vals)
+        up   = disp.GPIO_KEY_UP_PIN.value
+        down = disp.GPIO_KEY_DOWN_PIN.value
+        if up   and not prev_up:   scroll_up(None)
+        if down and not prev_down: scroll_down(None)
+        prev_up, prev_down = up, down
         time.sleep(0.05)
 
-threading.Thread(target=button_poller, daemon=True).start()
+def key_poller():
+    prev1 = 0
+    while True:
+        k1 = disp.GPIO_KEY1_PIN.value
+        if k1 and not prev1:
+            on_key1()
+        prev1 = k1
+        time.sleep(0.05)
+
+def cleanup(signum, frame):
+    disp.module_exit()
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, cleanup)
+signal.signal(signal.SIGINT, cleanup)
+
+threading.Thread(target=joystick_poller, daemon=True).start()
+threading.Thread(target=key_poller, daemon=True).start()
 
 def update_screen():
     img = Image.new('RGB', (240, 240), (0, 0, 0))
