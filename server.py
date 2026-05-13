@@ -13,7 +13,7 @@ import signal
 import sys
 import uuid
 
-BB_URL = "https://focusing-borders-butterfly-hills.trycloudflare.com"
+BB_URL = "https://bb.produceapp.ai"
 BB_PASSWORD = "Nishan123"
 CONTACTS = {
     'KEY1': {'name': 'Contact 1', 'number': '+14802866666'},
