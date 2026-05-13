@@ -151,7 +151,7 @@ def send_audio(number, filepath):
             resp = requests.post(
                 f"{BB_URL}/api/v1/message/attachment",
                 params={'password': BB_PASSWORD},
-                data={'chatGuid': f'iMessage;-;{number}'},
+                data={'chatGuid': f'iMessage;-;{number}', 'name': os.path.basename(filepath)},
                 files={'attachment': (os.path.basename(filepath), f, 'audio/mp4')},
                 timeout=30
             )
