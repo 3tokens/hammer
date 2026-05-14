@@ -90,6 +90,19 @@ Without `--origincert`/`--credentials-file`, tunnel fails with "cannot determine
 - Disco endpoint: `hammer_send_voice` in hypersonic/sonic/views.py
 - Screen shows transcript briefly after send
 
+## Joystick Button Assignments (current + planned)
+- **UP/DOWN**: scroll messages
+- **PRESS**: reply to `last_sender` (most recent non-Me sender) — BUILT
+- **LEFT/RIGHT**: reserved for select mode (scroll to message, right to enter select, left to cancel, press to record reply) — NOT YET BUILT
+- **KEY3**: reserved for AI query feature (record question → Claude answers on screen) — NOT YET BUILT
+
+### Select mode design (when building)
+- Joystick RIGHT → enter select mode, highlight topmost visible message
+- UP/DOWN in select mode → move highlight between visible messages
+- PRESS in select mode → start recording reply to highlighted sender
+- Joystick LEFT → exit select mode
+- No keys used, KEY3 stays free for AI
+
 ## Why not BB attachment API
 - Sending attachments requires SIP disabled + Private API injected
 - SIP is enabled on Mac — attachments hang for 20 min then 500 error
