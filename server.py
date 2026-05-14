@@ -17,7 +17,7 @@ CONTACTS = {
     'KEY1': {'name': 'Contact 1', 'number': '+14802866666'},
     'KEY2': {'name': 'Wife', 'number': '+15098608223'},
 }
-MIC_DEVICE = 'plughw:1,0'
+MIC_DEVICE = 'plughw:Device'
 
 
 app = Flask(__name__)
