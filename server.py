@@ -244,8 +244,10 @@ def receive_message():
         messages.append({'sender': sender, 'text': text})
         if len(messages) > MAX_MESSAGES:
             messages.pop(0)
+        print(f"Message from sender={sender!r} is_from_me={sender=='Me'}", flush=True)
         if sender != 'Me':
             last_sender = sender
+            print(f"last_sender set to {last_sender!r}", flush=True)
         scroll_offset = 0
         display_queue.put(True)
 
