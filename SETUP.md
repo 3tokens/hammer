@@ -36,18 +36,27 @@ sudo raspi-config nonint do_spi 0
 
 ```bash
 cd /home/pi
-git clone https://github.com/waveshare/1.3inch_LCD_HAT.git 1.3inch_LCD_HAT_code
+sudo apt install -y p7zip-full
+wget https://files.waveshare.com/upload/b/bd/1.3inch_LCD_HAT_code.7z
+7z x 1.3inch_LCD_HAT_code.7z -r -o./1.3inch_LCD_HAT_code
+sudo chmod 777 -R 1.3inch_LCD_HAT_code
 ```
 
-## 5. Clone Hammer Repo
+## 5. Install Python Dependencies
+
+```bash
+sudo pip3 install flask requests --break-system-packages
+```
+
+## 6. Clone Hammer Repo
 
 ```bash
 cd /home/pi/1.3inch_LCD_HAT_code/1.3inch_LCD_HAT_code/python
 git clone https://github.com/3tokens/hammer.git .
-# (copies server.py into the same dir as ST7789.py and config.py)
+# copies server.py into the same dir as ST7789.py and config.py
 ```
 
-## 6. Check Mic Device
+## 7. Check Mic Device
 
 Plug in USB mic, then:
 ```bash
@@ -55,7 +64,7 @@ arecord -l
 ```
 Note the card number for your USB mic. Update `MIC_DEVICE` in server.py if it's not `plughw:3,0`.
 
-## 7. Systemd Service
+## 8. Systemd Service
 
 ```bash
 sudo nano /etc/systemd/system/hammer.service
@@ -84,7 +93,7 @@ sudo systemctl enable hammer
 sudo systemctl start hammer
 ```
 
-## 8. BlueBubbles Webhook
+## 9. BlueBubbles Webhook
 
 In BlueBubbles on Mac, add webhook:
 - URL: `http://<PI_IP>:5000/message`
@@ -95,7 +104,7 @@ Get Pi IP:
 hostname -I
 ```
 
-## 9. Verify
+## 10. Verify
 
 ```bash
 sudo journalctl -u hammer -f
