@@ -84,7 +84,6 @@ WorkingDirectory=/home/pi/1.3inch_LCD_HAT_code/1.3inch_LCD_HAT_code/python
 Restart=always
 RestartSec=5
 User=pi
-ExecStartPre=/bin/sleep 5
 
 [Install]
 WantedBy=multi-user.target
