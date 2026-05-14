@@ -64,7 +64,7 @@ Plug in USB mic, then:
 ```bash
 arecord -l
 ```
-Note the card number for your USB mic. Update `MIC_DEVICE` in server.py if it's not `plughw:3,0`.
+Verify the USB mic shows up. The code uses `plughw:Device` which is stable across reboots and doesn't depend on card number.
 
 ## 8. Systemd Service
 
@@ -84,6 +84,7 @@ WorkingDirectory=/home/pi/1.3inch_LCD_HAT_code/1.3inch_LCD_HAT_code/python
 Restart=always
 RestartSec=5
 User=pi
+ExecStartPre=/bin/sleep 5
 
 [Install]
 WantedBy=multi-user.target
