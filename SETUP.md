@@ -23,7 +23,7 @@ ssh pi@disco.local
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3-pip python3-lgpio git ffmpeg arecord
+sudo apt install -y python3-pip python3-lgpio git alsa-utils
 pip3 install flask pillow requests
 ```
 
@@ -52,8 +52,10 @@ sudo pip3 install flask requests --break-system-packages
 
 ```bash
 cd /home/pi/1.3inch_LCD_HAT_code/1.3inch_LCD_HAT_code/python
-git clone https://github.com/3tokens/hammer.git .
-# copies server.py into the same dir as ST7789.py and config.py
+git init
+git remote add origin https://github.com/3tokens/hammer.git
+git fetch
+git checkout -f main
 ```
 
 ## 7. Check Mic Device
