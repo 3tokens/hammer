@@ -41,6 +41,7 @@ recording_tmpfile = None
 recording_key = None
 recording_lock = threading.Lock()
 status_msg = None
+last_sender = None
 
 def build_lines():
     lines = []
@@ -76,7 +77,12 @@ def start_recording(key):
     recording_proc = proc
     recording_tmpfile = tmpfile
     recording_key = key
-    set_status("Recording...\nPress KEY1 to send")
+    if key == 'JOYSTICK':
+        name = last_sender or 'last sender'
+        set_status(f"Reply to:\n{name[:20]}\nPress joystick")
+    else:
+        contact = CONTACTS.get(key, {})
+        set_status(f"Recording...\nTo: {contact.get('name','?')}\nPress again to send")
 
 def stop_and_send():
     global recording_proc, recording_tmpfile, recording_key
@@ -98,8 +104,11 @@ def stop_and_send():
         set_status(None)
         return
 
-    contact = CONTACTS.get(key, {})
-    number = contact.get('number', '')
+    if key == 'JOYSTICK':
+        number = last_sender or ''
+    else:
+        contact = CONTACTS.get(key, {})
+        number = contact.get('number', '')
 
     def upload():
         ok, transcript = send_audio(number, tmpfile)
@@ -145,13 +154,15 @@ def on_key(key):
         start_recording(key)
 
 def joystick_poller():
-    prev_up = prev_down = 0
+    prev_up = prev_down = prev_press = 0
     while True:
-        up   = disp.GPIO_KEY_UP_PIN.value
-        down = disp.GPIO_KEY_DOWN_PIN.value
-        if up   and not prev_up:   scroll_up(None)
-        if down and not prev_down: scroll_down(None)
-        prev_up, prev_down = up, down
+        up    = disp.GPIO_KEY_UP_PIN.value
+        down  = disp.GPIO_KEY_DOWN_PIN.value
+        press = disp.GPIO_KEY_PRESS_PIN.value
+        if up    and not prev_up:    scroll_up(None)
+        if down  and not prev_down:  scroll_down(None)
+        if press and not prev_press: on_key('JOYSTICK')
+        prev_up, prev_down, prev_press = up, down, press
         time.sleep(0.05)
 
 def key_poller():
@@ -227,10 +238,12 @@ def receive_message():
         text = data.get('text', '')
 
     if text:
-        global scroll_offset
+        global scroll_offset, last_sender
         messages.append({'sender': sender, 'text': text})
         if len(messages) > MAX_MESSAGES:
             messages.pop(0)
+        if sender != 'Me':
+            last_sender = sender
         scroll_offset = 0
         display_queue.put(True)
 
