@@ -12,7 +12,7 @@ import requests
 import signal
 import sys
 
-DISCO_VOICE_URL = "https://www.ddisco.com/sonic/hammer/send-voice?token=4bea0fd0218de9f99f19929ef61e16841ff938eee60604d166c05a17353c9844&owner=%2B14802866666"
+DISCO_VOICE_URL = "https://www.ddisco.com/sonic/hammer/send-voice?token=4bea0fd0218de9f99f19929ef61e16841ff938eee60604d166c05a17353c9844&owner=+14802866666"
 CONTACTS = {
     'KEY1': {'name': 'Contact 1', 'number': '+14802866666'},
     'KEY2': {'name': 'Wife', 'number': '+15098608223'},
