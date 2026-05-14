@@ -23,8 +23,8 @@ ssh pi@disco.local
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3-pip python3-lgpio git alsa-utils
-pip3 install flask pillow requests
+sudo apt install -y python3-pip python3-lgpio python3-flask python3-pil git alsa-utils p7zip-full
+sudo pip3 install requests --break-system-packages
 ```
 
 Enable SPI (required for the display):
@@ -36,19 +36,12 @@ sudo raspi-config nonint do_spi 0
 
 ```bash
 cd /home/pi
-sudo apt install -y p7zip-full
 wget https://files.waveshare.com/upload/b/bd/1.3inch_LCD_HAT_code.7z
 7z x 1.3inch_LCD_HAT_code.7z -r -o./1.3inch_LCD_HAT_code
 sudo chmod 777 -R 1.3inch_LCD_HAT_code
 ```
 
-## 5. Install Python Dependencies
-
-```bash
-sudo pip3 install flask requests --break-system-packages
-```
-
-## 6. Clone Hammer Repo
+## 5. Clone Hammer Repo
 
 ```bash
 cd /home/pi/1.3inch_LCD_HAT_code/1.3inch_LCD_HAT_code/python
@@ -112,10 +105,10 @@ hostname -I
 sudo journalctl -u hammer -f
 ```
 
-Should see Flask running on 0.0.0.0:5000. Send yourself an iMessage with "dd" prefix — it should appear on the screen.
+Should see Flask running on 0.0.0.0:5000. Send yourself an iMessage — it should appear on the screen within seconds.
 
 ## Notes
 
-- Mic card number may differ on each setup — always check with `arecord -l`
-- BB_PASSWORD and DISCO_VOICE_URL token are hardcoded in server.py — pull latest from git
+- Mic uses `plughw:Device` — stable across reboots, no card number needed. Verify with `arecord -l`
+- DISCO_VOICE_URL token is hardcoded in server.py — pull latest from git, don't change manually
 - Deploy updates: `git pull && sudo systemctl restart hammer`

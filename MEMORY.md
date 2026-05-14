@@ -30,7 +30,7 @@ Must call `disp.module_exit()` on SIGTERM/SIGINT to release gpiozero/lgpio pins 
 Without it, rapid restarts leave stale pin handles causing GPIOPinInUse crashes.
 
 ## Audio
-- USB mic: card 3, use `plughw:3,0`, record at 16000Hz S16_LE
+- USB mic: use `plughw:Device` (not card number — changes across setups), record at 16000Hz S16_LE
 - Bluetooth speaker: JBL Flip 5, MAC `20:18:5B:61:8E:B5`, use `bluealsa`
 - Playback requires resampling: `sox -v 5 file.wav -r 44100 -c 2 -t alsa bluealsa`
 - TTS: espeak-ng piped to aplay -D bluealsa
@@ -79,10 +79,14 @@ Without `--origincert`/`--credentials-file`, tunnel fails with "cannot determine
 
 ## Voice-to-iMessage Feature
 - KEY1/KEY2 toggle: first press starts recording, second press stops + sends
+- Joystick PRESS toggle: replies to last received message sender (any contact, no mapping needed)
+- Joystick LEFT/RIGHT: reserved for select mode (future — highlight message to reply to)
+- KEY3: reserved for AI queries (future)
 - Records WAV → POSTs to disco `/sonic/hammer/send-voice` → Groq transcribes → BB sends as text
 - No ffmpeg, no attachment API, no Private API needed — text via AppleScript works fine
 - CONTACTS dict maps key names to phone numbers
 - KEY1 → `+14802866666`, KEY2 → `+15098608223` (Melanie)
+- `last_sender` global tracks most recent non-Me sender for joystick reply
 - Disco endpoint: `hammer_send_voice` in hypersonic/sonic/views.py
 - Screen shows transcript briefly after send
 
