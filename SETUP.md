@@ -43,7 +43,7 @@ git clone https://github.com/waveshare/1.3inch_LCD_HAT.git 1.3inch_LCD_HAT_code
 
 ```bash
 cd /home/pi/1.3inch_LCD_HAT_code/1.3inch_LCD_HAT_code/python
-git clone https://github.com/nishantsingh/hammer.git .
+git clone https://github.com/3tokens/hammer.git .
 # (copies server.py into the same dir as ST7789.py and config.py)
 ```
 
