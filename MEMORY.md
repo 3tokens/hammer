@@ -78,7 +78,15 @@ Without `--origincert`/`--credentials-file`, tunnel fails with "cannot determine
 - 530 from Pi = tunnel down; 503 = tunnel up but not routing to BB; 500 = BB internal error
 
 ## Voice-to-iMessage Feature
-- KEY1 toggle: first press starts recording, second press stops + sends
-- Records wav → ffmpeg converts to m4a (aac) → POST to BlueBubbles attachment API
+- KEY1/KEY2 toggle: first press starts recording, second press stops + sends
+- Records WAV → POSTs to disco `/sonic/hammer/send-voice` → Groq transcribes → BB sends as text
+- No ffmpeg, no attachment API, no Private API needed — text via AppleScript works fine
 - CONTACTS dict maps key names to phone numbers
-- KEY1 → `+14802866666`
+- KEY1 → `+14802866666`, KEY2 → `+15098608223` (Melanie)
+- Disco endpoint: `hammer_send_voice` in hypersonic/sonic/views.py
+- Screen shows transcript briefly after send
+
+## Why not BB attachment API
+- Sending attachments requires SIP disabled + Private API injected
+- SIP is enabled on Mac — attachments hang for 20 min then 500 error
+- Text messages via AppleScript work without Private API ✓
