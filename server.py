@@ -161,7 +161,9 @@ def joystick_poller():
         press = disp.GPIO_KEY_PRESS_PIN.value
         if up    and not prev_up:    scroll_up(None)
         if down  and not prev_down:  scroll_down(None)
-        if press and not prev_press: on_key('JOYSTICK')
+        if press and not prev_press:
+            print(f"JOYSTICK PRESS detected", flush=True)
+            on_key('JOYSTICK')
         prev_up, prev_down, prev_press = up, down, press
         time.sleep(0.05)
 
