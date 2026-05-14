@@ -11,10 +11,8 @@ import os
 import requests
 import signal
 import sys
-import uuid
 
-BB_URL = "https://bb.produceapp.ai"
-BB_PASSWORD = "Nishan123"
+DISCO_VOICE_URL = "https://www.ddisco.com/sonic/hammer/send-voice?token=4bea0fd0218de9f99f19929ef61e16841ff938eee60604d166c05a17353c9844&owner=+14802866666"
 CONTACTS = {
     'KEY1': {'name': 'Contact 1', 'number': '+14802866666'},
     'KEY2': {'name': 'Wife', 'number': '+15098608223'},
@@ -103,27 +101,20 @@ def stop_and_send():
     contact = CONTACTS.get(key, {})
     number = contact.get('number', '')
 
-    set_status("Converting...")
-    m4a_file = tmpfile.replace('.wav', '.m4a')
-    r = subprocess.run(['ffmpeg', '-y', '-i', tmpfile, '-c:a', 'aac', m4a_file], capture_output=True)
-    print(f"ffmpeg exit={r.returncode} exists={os.path.exists(m4a_file)}", flush=True)
-    os.unlink(tmpfile)
-
-    if not os.path.exists(m4a_file):
-        set_status("Convert failed!")
-        time.sleep(2)
-        set_status(None)
-        return
-
     def upload():
-        ok = send_audio(number, m4a_file)
-        if os.path.exists(m4a_file):
-            os.unlink(m4a_file)
-        if not ok:
+        ok, transcript = send_audio(number, tmpfile)
+        if os.path.exists(tmpfile):
+            os.unlink(tmpfile)
+        if ok:
+            set_status(f"Sent:\n{transcript[:60]}")
+        else:
+            set_status("Send failed!")
             print("Background send failed", flush=True)
+        time.sleep(3)
+        set_status(None)
 
     threading.Thread(target=upload, daemon=True).start()
-    set_status("Sent!")
+    set_status("Transcribing...")
     time.sleep(2)
     set_status(None)
 
@@ -131,17 +122,19 @@ def send_audio(number, filepath):
     try:
         with open(filepath, 'rb') as f:
             resp = requests.post(
-                f"{BB_URL}/api/v1/message/attachment",
-                params={'password': BB_PASSWORD},
-                data={'chatGuid': f'iMessage;-;{number}', 'name': os.path.basename(filepath), 'tempGuid': str(uuid.uuid4())},
-                files={'attachment': (os.path.basename(filepath), f, 'audio/mp4')},
-                timeout=(10, 120)
+                DISCO_VOICE_URL,
+                data={'to': number},
+                files={'audio': (os.path.basename(filepath), f, 'audio/wav')},
+                timeout=(10, 60)
             )
-        print(f"BlueBubbles: {resp.status_code} {resp.text[:120]}", flush=True)
-        return resp.ok
+        print(f"Disco: {resp.status_code} {resp.text[:120]}", flush=True)
+        if resp.ok:
+            transcript = resp.json().get('transcript', '')
+            return True, transcript
+        return False, ''
     except Exception as e:
         print(f"Send error: {e}", flush=True)
-        return False
+        return False, ''
 
 def on_key(key):
     with recording_lock:
