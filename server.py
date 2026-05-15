@@ -45,25 +45,13 @@ recording_lock = threading.Lock()
 status_msg = None
 last_sender = None
 
-def get_local_ip():
-    import socket
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except:
-        return None
+
+HAMMER_URL = "https://hammer.produceapp.ai/message"
 
 def register_webhook():
     time.sleep(8)  # wait for network to stabilize
-    ip = get_local_ip()
-    if not ip:
-        print("Webhook registration: could not determine local IP", flush=True)
-        return
-    webhook_url = f"http://{ip}:5000/message"
     try:
+        webhook_url = HAMMER_URL
         r = requests.get(f"{BB_URL}/api/v1/webhook", params={'password': BB_PASSWORD}, timeout=10)
         if r.ok:
             data = r.json().get('data', []) or []
