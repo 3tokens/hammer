@@ -66,8 +66,12 @@ def register_webhook():
     try:
         r = requests.get(f"{BB_URL}/api/v1/webhook", params={'password': BB_PASSWORD}, timeout=10)
         if r.ok:
-            for wh in r.json().get('data', []):
-                requests.delete(f"{BB_URL}/api/v1/webhook/{wh['guid']}", params={'password': BB_PASSWORD}, timeout=10)
+            data = r.json().get('data', []) or []
+            print(f"Existing webhooks: {data}", flush=True)
+            for wh in data:
+                wh_id = wh.get('guid') or wh.get('id') or wh.get('uuid')
+                if wh_id:
+                    requests.delete(f"{BB_URL}/api/v1/webhook/{wh_id}", params={'password': BB_PASSWORD}, timeout=10)
         r = requests.post(f"{BB_URL}/api/v1/webhook",
                           params={'password': BB_PASSWORD},
                           json={'url': webhook_url, 'events': ['new-message']},
