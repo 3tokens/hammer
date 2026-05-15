@@ -13,6 +13,8 @@ import signal
 import sys
 
 DISCO_VOICE_URL = "https://www.ddisco.com/sonic/hammer/send-voice?token=4bea0fd0218de9f99f19929ef61e16841ff938eee60604d166c05a17353c9844&owner=+14802866666"
+BB_URL = "https://bb.produceapp.ai"
+BB_PASSWORD = "Nishan123"
 CONTACTS = {
     'KEY1': {'name': 'Contact 1', 'number': '+14802866666'},
     'KEY2': {'name': 'Wife', 'number': '+15098608223'},
@@ -42,6 +44,37 @@ recording_key = None
 recording_lock = threading.Lock()
 status_msg = None
 last_sender = None
+
+def get_local_ip():
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return None
+
+def register_webhook():
+    time.sleep(8)  # wait for network to stabilize
+    ip = get_local_ip()
+    if not ip:
+        print("Webhook registration: could not determine local IP", flush=True)
+        return
+    webhook_url = f"http://{ip}:5000/message"
+    try:
+        r = requests.get(f"{BB_URL}/api/v1/webhook", params={'password': BB_PASSWORD}, timeout=10)
+        if r.ok:
+            for wh in r.json().get('data', []):
+                requests.delete(f"{BB_URL}/api/v1/webhook/{wh['guid']}", params={'password': BB_PASSWORD}, timeout=10)
+        r = requests.post(f"{BB_URL}/api/v1/webhook",
+                          params={'password': BB_PASSWORD},
+                          json={'url': webhook_url, 'events': ['new-message']},
+                          timeout=10)
+        print(f"Webhook registered: {webhook_url} -> {r.status_code}", flush=True)
+    except Exception as e:
+        print(f"Webhook registration failed: {e}", flush=True)
 
 def build_lines():
     lines = []
@@ -187,6 +220,7 @@ signal.signal(signal.SIGINT, cleanup)
 
 threading.Thread(target=joystick_poller, daemon=True).start()
 threading.Thread(target=key_poller, daemon=True).start()
+threading.Thread(target=register_webhook, daemon=True).start()
 
 def update_screen():
     img = Image.new('RGB', (240, 240), (0, 0, 0))
