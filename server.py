@@ -40,6 +40,7 @@ recording_proc = None
 recording_tmpfile = None
 recording_key = None
 recording_lock = threading.Lock()
+uploading = False
 status_msg = None
 last_sender = None
 
@@ -86,7 +87,7 @@ def start_recording(key):
         set_status(f"Recording...\nTo: {contact.get('name','?')}\nPress again to send")
 
 def stop_and_send():
-    global recording_proc, recording_tmpfile, recording_key
+    global recording_proc, recording_tmpfile, recording_key, uploading
     with recording_lock:
         proc = recording_proc
         tmpfile = recording_tmpfile
@@ -94,6 +95,7 @@ def stop_and_send():
         recording_proc = None
         recording_tmpfile = None
         recording_key = None
+        uploading = True
 
     if proc:
         proc.terminate()
@@ -103,6 +105,8 @@ def stop_and_send():
         set_status("No audio recorded")
         time.sleep(2)
         set_status(None)
+        with recording_lock:
+            uploading = False
         return
 
     if key == 'JOYSTICK':
@@ -111,22 +115,19 @@ def stop_and_send():
         contact = CONTACTS.get(key, {})
         number = contact.get('number', '')
 
-    def upload():
-        ok, transcript = send_audio(number, tmpfile)
-        if os.path.exists(tmpfile):
-            os.unlink(tmpfile)
-        if ok:
-            set_status(f"Sent:\n{transcript[:60]}")
-        else:
-            set_status("Send failed!")
-            print("Background send failed", flush=True)
-        time.sleep(3)
-        set_status(None)
-
-    threading.Thread(target=upload, daemon=True).start()
     set_status("Transcribing...")
-    time.sleep(2)
+    ok, transcript = send_audio(number, tmpfile)
+    if os.path.exists(tmpfile):
+        os.unlink(tmpfile)
+    if ok:
+        set_status(f"Sent:\n{transcript[:60]}")
+    else:
+        set_status("Send failed!")
+        print("Background send failed", flush=True)
+    time.sleep(3)
     set_status(None)
+    with recording_lock:
+        uploading = False
 
 def send_audio(number, filepath):
     try:
@@ -149,6 +150,9 @@ def send_audio(number, filepath):
 def on_key(key):
     with recording_lock:
         is_recording = recording_proc is not None
+        is_uploading = uploading
+    if is_uploading:
+        return
     if is_recording:
         threading.Thread(target=stop_and_send, daemon=True).start()
     else:
