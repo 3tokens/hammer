@@ -82,6 +82,8 @@ def start_recording(key):
     if key == 'JOYSTICK':
         name = last_sender or 'last sender'
         set_status(f"Reply to:\n{name[:20]}\nPress joystick")
+    elif key == 'KEY3':
+        set_status("Say contact name\nthen message\nPress KEY3 to send")
     else:
         contact = CONTACTS.get(key, {})
         set_status(f"Recording...\nTo: {contact.get('name','?')}\nPress again to send")
@@ -111,6 +113,8 @@ def stop_and_send():
 
     if key == 'JOYSTICK':
         number = last_sender or ''
+    elif key == 'KEY3':
+        number = ''  # disco resolves contact from first word of transcript
     else:
         contact = CONTACTS.get(key, {})
         number = contact.get('number', '')
@@ -172,15 +176,18 @@ def joystick_poller():
         time.sleep(0.05)
 
 def key_poller():
-    prev1 = prev2 = 0
+    prev1 = prev2 = prev3 = 0
     while True:
         k1 = disp.GPIO_KEY1_PIN.value
         k2 = disp.GPIO_KEY2_PIN.value
+        k3 = disp.GPIO_KEY3_PIN.value
         if k1 and not prev1:
             on_key('KEY1')
         if k2 and not prev2:
             on_key('KEY2')
-        prev1, prev2 = k1, k2
+        if k3 and not prev3:
+            on_key('KEY3')
+        prev1, prev2, prev3 = k1, k2, k3
         time.sleep(0.05)
 
 def cleanup(signum, frame):
